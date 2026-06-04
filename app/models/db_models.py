@@ -1,31 +1,32 @@
-import datetime
-from sqlalchemy import create_engine, Column, Integer, String, DateTime
+from sqlalchemy import create_engine, Column, String
 from sqlalchemy.orm import declarative_base, sessionmaker
 from app.config import settings
 
 Base = declarative_base()
-engine= create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 class DocumentMetadata(Base):
     __tablename__ = "document_metadata"
-
-    id = Column(Integer, primary_key=True, index=True)
-    filename = Column(String, index=True)
-    chunking_strategy = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    id = Column(String, primary_key=True)
+    filename = Column(String)
+    chunking_strategy = Column(String)
+    created_at = Column(String)
 
 class InterviewBooking(Base):
-    __tablename__ = "interview_booking"
+    __tablename__ = "interview_bookings"
+    
+    id = Column(String, primary_key=True)
+    name = Column(String)
+    email = Column(String)
+    booking_date = Column(String)
+    booking_time = Column(String)
+    created_at = Column(String)
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    name = Column(String, nullable=False)
-    email = Column(String, nullable=False)
-    booking_date = Column(DateTime, nullable=False)
-    booking_time = Column(DateTime, nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db() -> None:
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
 def get_db():

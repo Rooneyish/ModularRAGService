@@ -4,6 +4,8 @@ from openai import OpenAI
 from sqlalchemy.orm import Session
 from app.config import settings
 from app.models.db_models import InterviewBooking
+import uuid
+import datetime
 
 class LLMService:
     def __init__(self) -> None:
@@ -36,7 +38,8 @@ class LLMService:
         response = self.client.chat.completions.create(
             model=settings.LLM_MODEL_NAME,
             messages=messages,
-            temperature=0.3
+            temperature=0.3,
+            extra_body={"keep_alive": -1}
         )
         
         raw_output = response.choices[0].message.content
@@ -51,16 +54,21 @@ class LLMService:
                 data = json.loads(json_str)
                 
                 booking = InterviewBooking(
+                    id=str(uuid.uuid4()),
                     name=data.get("name", "Unknown"),
                     email=data.get("email", "Unknown"),
                     booking_date=data.get("date", "Unknown"),
-                    booking_time=data.get("time", "Unknown")
+                    booking_time=data.get("time", "Unknown"),
+                    created_at=datetime.datetime.utcnow().isoformat()
                 )
                 db_session.add(booking)
                 db_session.commit()
                 
-                clean_text = text.replace(text[text.find("<BOOKING>"):end_idx + len("</BOOKING>")], "")
+                booking_tag_full = text[text.find("<BOOKING>"):end_idx + len("</BOOKING>")]
+                clean_text = text.replace(booking_tag_full, "")
+
                 return clean_text.strip() + "\n\n*[System: Your interview has been successfully logged in our records!]*"
             except Exception as e:
+                db_session.rollback()
                 return text + f"\n\n*[System Alert: Failed parsing booking metadata parameters: {str(e)}]*"
         return text
